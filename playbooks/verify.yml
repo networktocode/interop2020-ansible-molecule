@@ -16,7 +16,7 @@
     # - debug:
     #     msg: "{{ result }}"
 
-    - name: verify netaudithor output from file
+    - name: verify interface data from elastic doc
       assert:
         that:
           - result.json.hits.hits[0]._source.interface == "FastEthernet3/1"
