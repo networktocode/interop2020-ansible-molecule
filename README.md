@@ -62,7 +62,10 @@ As a pre-requisite for this test scenario you need to build a docker image local
 git clone https://github.com/tbotnz/cisgo-ios.git
 cd cisgo-ios
 docker build -t cisgo-ios:latest .
+docker tag cisgo-ios:latest molecule_local/cisgo-ios:latest
 ```
+
+The tag is needed when molecule uses it.
 
 To run the test scenario:
 
