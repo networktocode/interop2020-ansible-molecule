@@ -1,0 +1,2 @@
+[ios]
+router01  ansible_host=localhost

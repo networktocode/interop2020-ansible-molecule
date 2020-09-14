@@ -1,0 +1,9 @@
+---
+- name: Prepare
+  hosts: router01
+  gather_facts: no
+  tasks:
+
+    - name: Pause to give time for elastic to come up
+      pause:
+        seconds: 20

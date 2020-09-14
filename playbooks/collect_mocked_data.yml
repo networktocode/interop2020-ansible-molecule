@@ -1,0 +1,35 @@
+---
+- name: Backup Network Interface Data
+  hosts: all
+  gather_facts: no
+
+  tasks:
+    - name: Collect interface data from {{ inventory_hostname }}
+      ios_command:
+        host: "{{ inventory_hostname }}"
+        commands:
+          - show ip interface brief
+      register: output
+
+    - debug:
+        msg: "{{ output.stdout[0] }}"
+
+    - name: Parse interface raw data
+      set_fact:
+        intfs: "{{ output.stdout[0] | parse_cli_textfsm(playbook_dir ~ '/../textfsm/cisco_ios_show_ip_interface_brief.textfsm') }}"
+
+    # - debug: var=intfs
+
+    - name: Save interface data to DB
+      loop: "{{ intfs }}"
+      loop_control:
+        index_var: index
+      uri:
+        url: http://{{ elasticsearch_db | default('localhost') }}:9200/interface-data/_doc/{{ index }}
+        method: PUT
+        body_format: json
+        body: "{{ item }}"
+        status_code: [200, 201]
+      register: result
+
+    # - debug: var=result

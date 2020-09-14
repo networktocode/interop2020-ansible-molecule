@@ -1,0 +1,63 @@
+---
+dependency:
+  name: galaxy
+
+driver:
+  name: docker
+
+lint: |
+    yamllint playbooks/collect_static_data.yml
+    ansible-lint playbooks/collect_static_data.yml
+
+platforms:
+  - name: instance
+    image: centos:7
+    networks:
+      - name: molecule
+        links:
+          - elasticsearch
+
+  - name: elasticsearch
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.9.1
+    dockerfile: elasticsearch/Dockerfile.j2
+    exposed_ports:
+      - 9200
+      - 9300
+    volumes:
+      - "${PWD}/molecule/static/elasticsearch/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml"
+    override_command: False
+    networks:
+      - name: molecule
+        links:
+          - instance
+
+provisioner:
+  name: ansible
+  # log: true
+  lint:
+    name: ansible-lint
+  playbooks:
+    converge: ../../playbooks/collect_static_data.yml
+    verify: ../../playbooks/verify.yml
+  ansible_args:
+    - --limit=instance
+  inventory:
+    host_vars:
+      instance:
+        elasticsearch_db: elasticsearch
+verifier:
+  name: ansible
+
+scenario:
+  test_sequence:
+    - dependency
+    - lint
+    - cleanup
+    - destroy
+    - syntax
+    - create
+    - prepare
+    - converge
+    - verify
+    - cleanup
+    - destroy

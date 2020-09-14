@@ -1,0 +1,14 @@
+---
+- name: Prepare instance
+  hosts: instance
+  gather_facts: no
+
+  tasks:
+    - name: Save interface-data
+      copy:
+        src: data/interface-data.txt
+        dest: /tmp/interface-data.txt
+
+    - name: Pause to give time for elastic to come up
+      pause:
+        seconds: 20

@@ -1,0 +1,10 @@
+Value interface (\S+)
+Value ip (\S+)
+Value admin_status (up|down|administratively down)
+Value status (up|down)
+
+Start
+  ^${interface}\s+${ip}\s+\w+\s+\w+\s+${admin_status}\s+${status} -> Record
+  # Capture time-stamp if vty line has command time-stamping turned on
+  ^Load\s+for\s+
+  ^Time\s+source\s+is

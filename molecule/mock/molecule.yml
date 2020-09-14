@@ -1,0 +1,69 @@
+---
+dependency:
+  name: galaxy
+
+driver:
+  name: delegated
+  options:
+    managed: True
+    ansible_connection_options:
+      ansible_connection: network_cli
+      connection: network_cli
+
+lint: |
+    yamllint playbooks/collect_mocked_data.yml
+    ansible-lint playbooks/collect_mocked_data.yml
+
+platforms:
+  - name: router01
+    groups:
+      - ios
+    image: cisgo-ios:latest
+    pull: False
+    command: go run cis.go -listners 1
+    port: 10000
+    exposed_ports:
+      - 10000
+    published_ports:
+      - 0.0.0.0:10000:10000/tcp
+    networks:
+      - name: molecule_test
+        links:
+          - elasticsearch
+
+  - name: elasticsearch
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.9.1
+    env: {"discovery.type": "single-node"}
+    port: 22
+    exposed_ports:
+      - 9200
+      - 9300
+    published_ports:
+      - 0.0.0.0:9200:9200/tcp
+    override_command: False
+    networks:
+      - name: molecule_test
+        links:
+          - router01
+
+provisioner:
+  name: ansible
+  # log: true
+  config_options:
+    defaults:
+      ansible_connection: network_cli
+  lint:
+    name: ansible-lint
+  playbooks:
+    converge: ../../playbooks/collect_mocked_data.yml
+    verify: ../../playbooks/verify.yml
+  ansible_args:
+    - --limit=router01
+  inventory:
+    host_vars:
+      router01:
+        elasticsearch_db: elasticsearch
+    links:
+      group_vars: ../../inventory/group_vars/
+verifier:
+  name: ansible

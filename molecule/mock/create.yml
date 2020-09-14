@@ -1,0 +1,104 @@
+---
+- name: Create
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  no_log: "{{ molecule_no_log }}"
+  tasks:
+
+    - name: Create docker network(s)
+      action: docker_network
+      args: "{{ item }}"
+      with_items: "{{ molecule_yml.platforms | molecule_get_docker_networks('present') }}"
+      loop_control:
+        label: "{{ item.name }}"
+      no_log: false
+
+    - name: Determine the CMD directives
+      set_fact:
+        command_directives_dict: >-
+          {{ command_directives_dict | default({}) |
+             combine({ item.name: item.command | default('bash -c "while true; do sleep 10000; done"') })
+          }}
+      with_items: "{{ molecule_yml.platforms }}"
+      when: item.override_command | default(true)
+
+    - name: Create molecule instance(s)
+      docker_container:
+        name: "{{ item.name }}"
+        docker_host: "{{ item.docker_host | default(lookup('env', 'DOCKER_HOST') or 'unix://var/run/docker.sock') }}"
+        cacert_path: "{{ item.cacert_path | default((lookup('env', 'DOCKER_CERT_PATH') + '/ca.pem') if lookup('env', 'DOCKER_CERT_PATH') else omit) }}"
+        cert_path: "{{ item.cert_path | default((lookup('env', 'DOCKER_CERT_PATH') + '/cert.pem')  if lookup('env', 'DOCKER_CERT_PATH') else omit) }}"
+        key_path: "{{ item.key_path | default((lookup('env', 'DOCKER_CERT_PATH') + '/key.pem') if lookup('env', 'DOCKER_CERT_PATH') else omit) }}"
+        tls_verify: "{{ item.tls_verify | default(lookup('env', 'DOCKER_TLS_VERIFY')) or false }}"
+        hostname: "{{ item.hostname | default(item.name) }}"
+        image: "{{ item.pre_build_image | default(false) | ternary('', 'molecule_local/') }}{{ item.image }}"
+        pull: "{{ item.pull | default(omit) }}"
+        memory: "{{ item.memory | default(omit) }}"
+        memory_swap: "{{ item.memory_swap | default(omit) }}"
+        state: started
+        recreate: false
+        log_driver: json-file
+        command: "{{ (command_directives_dict | default({}))[item.name] | default(omit) }}"
+        user: "{{ item.user | default(omit) }}"
+        pid_mode: "{{ item.pid_mode | default(omit) }}"
+        privileged: "{{ item.privileged | default(omit) }}"
+        security_opts: "{{ item.security_opts | default(omit) }}"
+        devices: "{{ item.devices | default(omit) }}"
+        volumes: "{{ item.volumes | default(omit) }}"
+        tmpfs: "{{ item.tmpfs | default(omit) }}"
+        capabilities: "{{ item.capabilities | default(omit) }}"
+        sysctls: "{{ item.sysctls | default(omit) }}"
+        exposed_ports: "{{ item.exposed_ports | default(omit) }}"
+        published_ports: "{{ item.published_ports | default(omit) }}"
+        ulimits: "{{ item.ulimits | default(omit) }}"
+        networks: "{{ item.networks | default(omit) }}"
+        network_mode: "{{ item.network_mode | default(omit) }}"
+        networks_cli_compatible: "{{ item.networks_cli_compatible | default(true) }}"
+        purge_networks: "{{ item.purge_networks | default(omit) }}"
+        dns_servers: "{{ item.dns_servers | default(omit) }}"
+        etc_hosts: "{{ item.etc_hosts | default(omit) }}"
+        env: "{{ item.env | default(omit) }}"
+        restart_policy: "{{ item.restart_policy | default(omit) }}"
+        restart_retries: "{{ item.restart_retries | default(omit) }}"
+        tty: "{{ item.tty | default(omit) }}"
+        container_default_behavior: "{{ item.container_default_behavior | default('compatibility' if ansible_version.full is version_compare('2.10', '>=') else omit) }}"
+      register: server
+      with_items: "{{ molecule_yml.platforms }}"
+      loop_control:
+        label: "{{ item.name }}"
+      no_log: false
+      async: 7200
+      poll: 0
+
+    - name: Wait for instance(s) creation to complete
+      async_status:
+        jid: "{{ item.ansible_job_id }}"
+      register: docker_jobs
+      until: docker_jobs.finished
+      retries: 300
+      with_items: "{{ server.results }}"
+
+    - when: server.changed | default(false) | bool
+      block:
+        - name: Populate instance config dict
+          set_fact:
+            instance_conf_dict: {
+              'instance': "{{ item.name }}",
+              'address': "localhost",
+              'user': "ansible",
+              'port': "{{ item.port }}",
+              'connection': "network_cli",
+              'identity_file': "{{ item.identity_file | default(omit) }}", }
+          with_items: "{{ molecule_yml.platforms }}"
+          # with_items: "{{ server.results }}"
+          register: instance_config_dict
+
+        - name: Convert instance config dict to a list
+          set_fact:
+            instance_conf: "{{ instance_config_dict.results | map(attribute='ansible_facts.instance_conf_dict') | list }}"
+
+        - name: Dump instance config
+          copy:
+            content: "{{ instance_conf | to_json | from_json | molecule_to_yaml | molecule_header }}"
+            dest: "{{ molecule_instance_config }}"
