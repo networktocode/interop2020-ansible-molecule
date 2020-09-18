@@ -1,0 +1,26 @@
+---
+- name: Destroy
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  no_log: "{{ molecule_no_log }}"
+  vars_files:
+    - inventory/gns3_vars.yml
+  collections:
+    - davidban77.gns3
+
+  tasks:
+    - name: Stop lab and deletion
+      block:
+        - import_role:
+            name: delete_lab
+
+    - name: Populate instance config
+      set_fact:
+        instance_conf: {}
+
+    - name: Dump instance config
+      copy:
+        content: "{{ instance_conf | to_json | from_json | molecule_to_yaml | molecule_header }}"
+        dest: "{{ molecule_instance_config }}"
+      when: server.changed | default(false) | bool

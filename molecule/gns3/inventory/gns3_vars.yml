@@ -1,0 +1,23 @@
+#### GNS3 Server settings
+gns3_url: "http://gns3-server"
+gns3_project_name: ansible-molecule-demo
+gns3_lab_user: "netops"
+gns3_lab_pass: "netops1234"
+gns3_nodes_strategy: all
+
+### Nodes attributes and specifications
+gns3_nodes_spec:
+  - name: router01
+    template: "Cisco IOSv 15.7(3)M3"
+  - name: cloud-1
+    template: "Cloud"
+
+### Links
+gns3_links_spec:
+  - ["cloud-1", "eth1", "router01", "Gi0/0"]
+
+### Boilerplate configuration settings
+boilerplate:
+  config: "deploy"
+  automated_push: "yes"
+  automated_push_delay: 1

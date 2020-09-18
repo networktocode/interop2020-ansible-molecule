@@ -1,0 +1,1 @@
+ansible_host: "{{ mgmt_ip | ipaddr('address') }}"

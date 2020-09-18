@@ -1,0 +1,41 @@
+---
+- name: Prepare
+  hosts: router01
+  gather_facts: no
+
+  vars:
+    ansible_connection: local
+    ansible_python_interpreter: "{{ansible_playbook_python}}"
+
+  vars_files:
+    - inventory/gns3_vars.yml
+
+  collections:
+    - davidban77.gns3
+
+  tasks:
+    - name: Retrieving nodes inventory information
+      set_fact:
+        nodes_inventory: "{{ hostvars['localhost']['nodes_inventory']['nodes_inventory'] }}"
+
+    - name: Deploy boilerplate configuration
+      when: boilerplate.config == "deploy" and ansible_net_os != "gns3_builtin"
+      block:
+        - name: Generate configuration variable
+          set_fact:
+            boilerplate_config: "{{ lookup('template', 'templates/{{ ansible_net_os }}.j2') }}"
+
+        - name: "Push config"
+          when: ansible_net_os == "ios"
+          gns3_telnet_console:
+            remote_addr: "{{ nodes_inventory[inventory_hostname]['server'] }}"
+            port: "{{ nodes_inventory[inventory_hostname]['console_port'] }}"
+            send_newline: yes
+            command: "{{ boilerplate_config.splitlines() }}"
+            pause: 1
+            timeout:
+              general: 180
+              pre_login: 60
+              post_login: 60
+              login_prompt: 30
+              config_dialog: 30

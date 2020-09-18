@@ -1,0 +1,2 @@
+[ios]
+router01  mgmt_ip=192.168.0.210/24 mgmt_interface=GigabitEthernet0/0 ansible_net_os="ios"

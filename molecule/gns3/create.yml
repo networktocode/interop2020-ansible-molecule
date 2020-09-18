@@ -1,0 +1,59 @@
+---
+- name: Create
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  no_log: "{{ molecule_no_log }}"
+
+  vars_files:
+    - inventory/gns3_vars.yml
+
+  collections:
+    - davidban77.gns3
+
+  tasks:
+
+    - name: Lab creation and setup
+      block:
+        - import_role:
+            name: create_lab
+
+        - name: Collect the nodes inventory
+          gns3_nodes_inventory:
+            url: "{{ gns3_url }}"
+            project_name: "{{ gns3_project_name }}"
+          register: nodes_inventory
+
+    - name: Pause section
+      when: boilerplate.config == "deploy" and boilerplate.automated_push == "no"
+      pause:
+        prompt: "Press Enter to proceed with configuration deployments:"
+
+    - name: Pause section
+      when: boilerplate.config == "deploy" and boilerplate.automated_push == "yes"
+      pause:
+        minutes: "{{ boilerplate.automated_push_delay | default(3) }}"
+
+    - when: server.changed | default(false) | bool
+      block:
+        - name: Populate instance config dict
+          set_fact:
+            instance_conf_dict: {
+              'instance': "{{ item.name }}",
+              'address': "localhost",
+              'user': "ansible",
+              'port': "{{ item.port }}",
+              'connection': "network_cli",
+              'identity_file': "{{ item.identity_file | default(omit) }}", }
+          with_items: "{{ molecule_yml.platforms }}"
+          # with_items: "{{ server.results }}"
+          register: instance_config_dict
+
+        - name: Convert instance config dict to a list
+          set_fact:
+            instance_conf: "{{ instance_config_dict.results | map(attribute='ansible_facts.instance_conf_dict') | list }}"
+
+        - name: Dump instance config
+          copy:
+            content: "{{ instance_conf | to_json | from_json | molecule_to_yaml | molecule_header }}"
+            dest: "{{ molecule_instance_config }}"
