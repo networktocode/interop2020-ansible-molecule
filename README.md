@@ -26,7 +26,7 @@ When molecule is run, it is normally in charge of:
 
 ## Requirements
 
-In a python virtual environment in the dependencies stated in `requirement.txt`
+In a python virtual environment install the dependencies stated in `requirement.txt`
 
 ```shell
 pip install -r requirements.txt
