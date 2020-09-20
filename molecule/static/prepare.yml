@@ -9,6 +9,11 @@
         src: data/interface-data.txt
         dest: /tmp/interface-data.txt
 
-    - name: Pause to give time for elastic to come up
-      pause:
-        seconds: 20
+    - name: "Wait for Elasticsearch to come up"
+      uri:
+        url: "http://{{ elasticsearch_db | default('localhost') }}:9200/_cluster/health?wait_for_status=green&timeout=30s"
+        status_code: 200
+      register: result
+      until: result.status == 200
+      retries: 30
+      delay: 1
