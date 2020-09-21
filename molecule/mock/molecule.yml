@@ -11,8 +11,8 @@ driver:
       connection: network_cli
 
 lint: |
-    yamllint playbooks/collect_mocked_data.yml
-    ansible-lint playbooks/collect_mocked_data.yml
+    yamllint playbooks/collect_mocked_data.yml playbooks/verify.yml
+    ansible-lint playbooks/collect_mocked_data.yml playbooks/verify.yml
 
 platforms:
   - name: router01
