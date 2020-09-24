@@ -6,9 +6,6 @@ driver:
   name: delegated
   options:
     managed: True
-    ansible_connection_options:
-      ansible_connection: network_cli
-      connection: network_cli
 
 lint: |
     yamllint playbooks/collect_mocked_data.yml playbooks/verify.yml
@@ -49,9 +46,6 @@ platforms:
 provisioner:
   name: ansible
   # log: true
-  config_options:
-    defaults:
-      ansible_connection: network_cli
   lint:
     name: ansible-lint
   playbooks:
