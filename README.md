@@ -54,15 +54,15 @@ molecule test -s static
 
 ## Test: Mocked Data Scenario
 
-In this scenario I am leveraging the awesome project [cisgo-ios](https://github.com/tbotnz/cisgo-ios), which give the ability to mock an SSH connection to a network device and has some predefined data which you can use to parse and test.
+In this scenario I am leveraging the awesome project [cisshgo](https://github.com/tbotnz/cisshgo), which give the ability to mock an SSH connection to a network device and has some predefined data which you can use to parse and test.
 
 As a pre-requisite for this test scenario you need to build a docker image locally so it can be used:
 
 ```shell
-git clone https://github.com/tbotnz/cisgo-ios.git
-cd cisgo-ios
-docker build -t cisgo-ios:latest .
-docker tag cisgo-ios:latest molecule_local/cisgo-ios:latest
+git clone https://github.com/tbotnz/cisshgo.git
+cd cisshgo
+docker build -t cisshgo:latest .
+docker tag cisshgo:latest molecule_local/cisshgo:latest
 ```
 
 The tag is needed when molecule uses it.
