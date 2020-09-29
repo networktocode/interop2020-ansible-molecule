@@ -15,9 +15,9 @@ platforms:
   - name: router01
     groups:
       - ios
-    image: cisgo-ios:latest
+    image: cisshgo:latest
     pull: False
-    command: go run cis.go -listners 1
+    command: go run cissh.go -listners 1
     port: 10000
     exposed_ports:
       - 10000
