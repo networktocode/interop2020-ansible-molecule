@@ -1,0 +1,36 @@
+- name: set placeholder vars
+  set_fact:
+    gns3_nodes_spec: []
+    gns3_links_spec: []
+    docker_instances: []
+
+- name: set gns3_nodes_spec from driver
+  set_fact:
+    gns3_nodes_spec: "{{ gns3_nodes_spec + molecule_yml.driver.options.gns3_external_connection.nodes }}"
+
+- name: set gns3_nodes_spec from platform
+  loop: "{{ molecule_yml.platforms }}"
+  when: item.driver == "gns3"
+  set_fact:
+    gns3_nodes_spec: "{{ gns3_nodes_spec + [{'name': item.name, 'template': item.template}] }}"
+
+- name: set gns3_links_spec from driver
+  set_fact:
+    gns3_links_spec: "{{ gns3_links_spec + molecule_yml.driver.options.gns3_external_connection.links }}"
+
+- name: set gns3_links_spec from platform
+  loop: "{{ molecule_yml.platforms }}"
+  when: item.driver == "gns3"
+  set_fact:
+    gns3_links_spec: "{{ gns3_links_spec + [[item.name, item.external_connection.local_interface, item.external_connection.mgmt_device, item.external_connection.mgmt_device_interface]] }}"
+
+# - debug: var=gns3_nodes_spec
+# - debug: var=gns3_links_spec
+
+- name: verify docker setup
+  loop: "{{ molecule_yml.platforms }}"
+  when: item.driver == "docker"
+  set_fact:
+    docker_instances: "{{ docker_instances + [item] }}"
+
+# - debug: var=docker_instances

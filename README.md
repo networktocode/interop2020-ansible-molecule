@@ -42,6 +42,8 @@ Collect Interface Raw Data > Parse data into structured format > Save to DB
 
 There are 2 molecule scenarios built that test these playbooks.
 
+---
+
 ## Test: Static Data Scenario
 
 This scenarios aims to show how molecule can be used with `docker` plugin. It instantiates a `centos:7` docker container where a interface data `txt` file has the information and the playbook is in charge of reading it, parsing the data and save it to an Elasticsearch DB container.
@@ -51,6 +53,8 @@ To run all scneario's phases:
 ```shell
 molecule test -s static
 ```
+
+---
 
 ## Test: Mocked Data Scenario
 
@@ -72,3 +76,41 @@ To run the test scenario:
 ```shell
 molecule test -s mock
 ```
+
+---
+
+## Test: GNS3 Scenario
+
+In this interesting scenario you can leverage a GNS3 server as a resource provider for the molecule scenario, meaning that **molecule will create, prepare and destroy GNS3 labs and routers** for testing the ansible playbooks.
+
+### Extra requirements:
+
+- **GNS3 server and valid router image installed**: In this case the GNS3 server is on the same network as the host running molecule and it has the IOSv image and template installed. This means as well that connectivty from the molecule machine to GNS3 server must exist to be able to connect to its API.
+- [gns3fy](https://github.com/davidban77/gns3fy)
+
+```shell
+pip install gns3fy
+```
+
+- [Ansible collection for gns3](https://galaxy.ansible.com/davidban77/gns3) for the creation and destroy playbooks to be succesfully executed
+
+```shell
+ansible-galaxy collection install davidban77.gns3
+```
+
+- [netaddr](https://github.com/netaddr/netaddr) python package to successfully run some jinja2 filters in ansible
+
+```shell
+pip install netaddr
+```
+
+### Molecule procedure in GNS3 scenario
+
+![molecule-gns3-scenario](docs/interop2020-molecule-gns3.svg)
+
+The steps shown in the diagram are executed in the following molecule phases:
+
+- **Create and prepare**: Step 1 and 2. Uses the GNS3 ansible modules to connect to server, create lab, create router and push initial bootstrap SSH config over console.
+- **Converge**: Step 3 and 4. Where the playbook being tested is executed. It follows the same procedure as the steps above. Important note here is that the connection is now `network_cli`.
+- **Verify**: Step 5. Could have been the same `verify.yml` of the other scenarios but since the interfaces were different, I just copied and replaced the interfaces to be verified.
+- **Destroy**: Step 6. It deletes the GNS3 lab and router **AND** the docker networks and container (elasticsearch). So all resources being used are released.
