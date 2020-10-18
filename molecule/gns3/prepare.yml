@@ -1,11 +1,11 @@
----
+# ---
 - name: Prepare
   hosts: router01
   gather_facts: no
 
   vars:
     ansible_connection: local
-    ansible_python_interpreter: "{{ansible_playbook_python}}"
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
 
   vars_files:
     - inventory/gns3_vars.yml
@@ -13,23 +13,35 @@
   collections:
     - davidban77.gns3
 
+  pre_tasks:
+    - name: Set required variables for playbooks
+      include_tasks: tasks/vars_processing.yml
+
   tasks:
-    - name: Retrieving nodes inventory information
-      set_fact:
-        nodes_inventory: "{{ hostvars['localhost']['nodes_inventory']['nodes_inventory'] }}"
+    - name: Collect the nodes
+      delegate_to: localhost
+      gns3_nodes_inventory:
+        url: "{{ gns3_url }}"
+        port: "{{ gns3_port }}"
+        project_name: "{{ gns3_project_name }}"
+      register: nodes_inventory
+
+    - debug: var=nodes_inventory.nodes_inventory.router01
 
     - name: Deploy boilerplate configuration
-      when: boilerplate.config == "deploy" and ansible_net_os != "gns3_builtin"
+      when: boilerplate.config == "deploy" and ansible_network_os != "gns3_builtin"
       block:
         - name: Generate configuration variable
           set_fact:
-            boilerplate_config: "{{ lookup('template', 'templates/{{ ansible_net_os }}.j2') }}"
+            boilerplate_config: "{{ lookup('template', 'templates/{{ ansible_network_os }}.j2') }}"
+
+        - debug: var=boilerplate_config
 
         - name: "Push config"
-          when: ansible_net_os == "ios"
+          when: ansible_network_os == "ios"
           gns3_telnet_console:
-            remote_addr: "{{ nodes_inventory[inventory_hostname]['server'] }}"
-            port: "{{ nodes_inventory[inventory_hostname]['console_port'] }}"
+            remote_addr: "{{ nodes_inventory.nodes_inventory[inventory_hostname]['server'] }}"
+            port: "{{ nodes_inventory.nodes_inventory[inventory_hostname]['console_port'] }}"
             send_newline: yes
             command: "{{ boilerplate_config.splitlines() }}"
             pause: 1
@@ -40,6 +52,12 @@
               login_prompt: 30
               config_dialog: 30
 
+- name: Check Elasticsearch
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  tasks:
+
     - name: "Wait for Elasticsearch to come up"
       uri:
         url: "http://{{ elasticsearch_db | default('localhost') }}:9200/_cluster/health?wait_for_status=green&timeout=30s"
@@ -48,4 +66,3 @@
       until: result.status == 200
       retries: 30
       delay: 1
-

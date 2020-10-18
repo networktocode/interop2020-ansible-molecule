@@ -11,28 +11,17 @@
   collections:
     - davidban77.gns3
 
+  pre_tasks:
+    - name: Set required variables for playbooks
+      include_tasks: tasks/vars_processing.yml
+
   tasks:
+    - name: Docker setup
+      when: docker_instances | length > 0
+      include_tasks: tasks/create_docker.yml
 
-    - name: Lab creation and setup
-      block:
-        - import_role:
-            name: create_lab
-
-        - name: Collect the nodes inventory
-          gns3_nodes_inventory:
-            url: "{{ gns3_url }}"
-            project_name: "{{ gns3_project_name }}"
-          register: nodes_inventory
-
-    - name: Pause section
-      when: boilerplate.config == "deploy" and boilerplate.automated_push == "no"
-      pause:
-        prompt: "Press Enter to proceed with configuration deployments:"
-
-    - name: Pause section
-      when: boilerplate.config == "deploy" and boilerplate.automated_push == "yes"
-      pause:
-        minutes: "{{ boilerplate.automated_push_delay | default(3) }}"
+    - name: GNS3 Lab creation and setup
+      include_tasks: tasks/create_gns3.yml
 
     - when: server.changed | default(false) | bool
       block:
@@ -40,12 +29,8 @@
           set_fact:
             instance_conf_dict: {
               'instance': "{{ item.name }}",
-              'address': "localhost",
-              'user': "ansible",
-              'port': "{{ item.port }}",
-              'connection': "network_cli",
               'identity_file': "{{ item.identity_file | default(omit) }}", }
-          with_items: "{{ molecule_yml.platforms }}"
+          with_items: "{{ docker_instances }}"
           # with_items: "{{ server.results }}"
           register: instance_config_dict
 

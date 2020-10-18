@@ -19,10 +19,6 @@ line vty 0 4
 transport input ssh
 ! USER
 username {{ gns3_lab_user }} privilege 15 password 0 {{ gns3_lab_pass }}
-! logging
-logging userinfo
-logging origin-id hostname
-logging host {{ syslog.address }} transport {{ syslog.protocol }} port {{ syslog.port }}
 {% if mgmt_interface is defined %}
 interface {{ mgmt_interface }}
 {% if mgmt_ip is defined %}

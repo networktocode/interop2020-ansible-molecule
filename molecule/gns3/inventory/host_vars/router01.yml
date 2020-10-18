@@ -1,1 +1,3 @@
+mgmt_ip: 192.168.0.210/24
+mgmt_interface: GigabitEthernet0/0
 ansible_host: "{{ mgmt_ip | ipaddr('address') }}"
