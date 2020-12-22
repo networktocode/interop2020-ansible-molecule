@@ -1,0 +1,34 @@
+---
+- name: Destroy
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  no_log: "{{ molecule_no_log }}"
+
+  vars_files:
+    - inventory/gns3_vars.yml
+
+  collections:
+    - davidban77.gns3
+
+  pre_tasks:
+    - name: Set required variables for playbooks
+      include_tasks: tasks/vars_processing.yml
+
+  tasks:
+    - name: GNS3 Stop lab and deletion
+      include_tasks: tasks/destroy_gns3.yml
+
+    - name: Destroy Docker setup
+      when: docker_instances | length > 0
+      include_tasks: tasks/destroy_docker.yml
+
+    - name: Populate instance config
+      set_fact:
+        instance_conf: {}
+
+    - name: Dump instance config
+      copy:
+        content: "{{ instance_conf | to_json | from_json | molecule_to_yaml | molecule_header }}"
+        dest: "{{ molecule_instance_config }}"
+      when: server.changed | default(false) | bool

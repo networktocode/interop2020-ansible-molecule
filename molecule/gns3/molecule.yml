@@ -1,0 +1,63 @@
+---
+dependency:
+  name: galaxy
+
+driver:
+  name: delegated
+  options:
+    managed: True
+    gns3_external_connection:
+      nodes:
+        - name: cloud-1
+          template: "Cloud"
+        - name: switch-1
+          template: "Ethernet switch"
+      links:
+        - ["cloud-1", "eth0", "switch-1", "Ethernet0"]
+
+lint: |
+    yamllint playbooks/collect_mocked_data.yml playbooks/verify.yml
+    ansible-lint playbooks/collect_mocked_data.yml playbooks/verify.yml
+
+platforms:
+  - name: router01
+    driver: gns3
+    template: "Cisco IOSv 15.7(3)M3"
+    external_connection:
+      local_interface: Gi0/0
+      mgmt_device: switch-1
+      mgmt_device_interface: Ethernet1
+
+  - name: elasticsearch
+    driver: docker
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.9.1
+    from_provider: docker
+    env: {"discovery.type": "single-node"}
+    port: 22
+    exposed_ports:
+      - 9200
+      - 9300
+    published_ports:
+      - 0.0.0.0:9200:9200/tcp
+    override_command: False
+    networks:
+      - name: molecule_test
+        links:
+          - router01
+
+provisioner:
+  name: ansible
+  # log: true
+  playbooks:
+    converge: ../../playbooks/collect_mocked_data.yml
+  ansible_args:
+    - --limit=router01
+  inventory:
+    host_vars:
+      router01:
+        elasticsearch_db: elasticsearch
+    links:
+      group_vars: inventory/group_vars/
+      host_vars: inventory/host_vars/
+verifier:
+  name: ansible

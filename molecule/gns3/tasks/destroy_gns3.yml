@@ -1,0 +1,6 @@
+- name: Stop GNS3 nodes and delete Project
+  gns3_project:
+    url: "{{ gns3_url }}"
+    port: "{{ gns3_port }}"
+    project_name: "{{ gns3_project_name }}"
+    state: absent

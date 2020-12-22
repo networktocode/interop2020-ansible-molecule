@@ -1,0 +1,44 @@
+---
+- name: Create
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  no_log: "{{ molecule_no_log }}"
+
+  vars_files:
+    - inventory/gns3_vars.yml
+
+  collections:
+    - davidban77.gns3
+
+  pre_tasks:
+    - name: Set required variables for playbooks
+      include_tasks: tasks/vars_processing.yml
+
+  tasks:
+    - name: Docker setup
+      when: docker_instances | length > 0
+      include_tasks: tasks/create_docker.yml
+
+    - name: GNS3 Lab creation and setup
+      include_tasks: tasks/create_gns3.yml
+
+    - when: server.changed | default(false) | bool
+      block:
+        - name: Populate instance config dict
+          set_fact:
+            instance_conf_dict: {
+              'instance': "{{ item.name }}",
+              'identity_file': "{{ item.identity_file | default(omit) }}", }
+          with_items: "{{ docker_instances }}"
+          # with_items: "{{ server.results }}"
+          register: instance_config_dict
+
+        - name: Convert instance config dict to a list
+          set_fact:
+            instance_conf: "{{ instance_config_dict.results | map(attribute='ansible_facts.instance_conf_dict') | list }}"
+
+        - name: Dump instance config
+          copy:
+            content: "{{ instance_conf | to_json | from_json | molecule_to_yaml | molecule_header }}"
+            dest: "{{ molecule_instance_config }}"

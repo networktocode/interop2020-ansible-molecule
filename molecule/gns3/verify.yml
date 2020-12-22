@@ -1,0 +1,24 @@
+- name: Verify interface data
+  hosts: all
+  gather_facts: no
+
+  tasks:
+    - name: Get the elastic doc
+      uri:
+        url: http://{{ elasticsearch_db | default('localhost') }}:9200/interface-data/_search
+        method: POST
+        body_format: json
+        body:
+          query: {"term": {"interface.keyword": "GigabitEthernet0/0"}}
+      register: result
+
+    # - debug:
+    #     msg: "{{ result }}"
+
+    - name: verify interface data from elastic doc
+      assert:
+        that:
+          - result.json.hits.hits[0]._source.interface == "GigabitEthernet0/0"
+          - result.json.hits.hits[0]._source.ip == "192.168.0.210"
+          - result.json.hits.hits[0]._source.admin_status == "up"
+          - result.json.hits.hits[0]._source.status == "up"
