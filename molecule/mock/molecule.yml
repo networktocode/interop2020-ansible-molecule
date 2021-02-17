@@ -17,7 +17,7 @@ platforms:
       - ios
     image: cisshgo:latest
     pull: False
-    command: go run cissh.go -listners 1
+    command: go run cissh.go -listeners 1
     port: 10000
     exposed_ports:
       - 10000
