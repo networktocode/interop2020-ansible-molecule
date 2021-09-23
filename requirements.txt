@@ -1,4 +1,4 @@
-ansible==2.9.13
+ansible==4.2.0
 paramiko==2.7.2
 textfsm==1.1.0
 molecule==3.0.8
